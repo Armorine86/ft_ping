@@ -1,4 +1,3 @@
-#include "ft_ping.h"
 #include "ft_flags.h"
 #include "utils.h"
 #include "libft.h"
@@ -18,12 +17,12 @@ void set_flags(int *flags, char c) {
 }
 
 bool validate_flag(char c) {
-    return strchr(POSSIBLE_FLAGS, c);
+    return ft_strchr(POSSIBLE_FLAGS, c);
 }
 
 bool validate_flags(int *flags, char *str) {
     for (int i = 0; str[i]; ++i) {
-        if (!strchr(POSSIBLE_FLAGS, str[i])) {
+        if (!ft_strchr(POSSIBLE_FLAGS, str[i])) {
             return false;
         }
         set_flags(flags, str[i]);
@@ -31,7 +30,7 @@ bool validate_flags(int *flags, char *str) {
     return true;
 }
 
-bool parse_cmd(struct Ping *ping, char **argv, int argc) {
+bool parse_cmd(int *flags, struct Socket *sock, char **argv, int argc) {
     for (; argv; argv++, argc--) {
         if ((argc == 1 || argc == 2) && (*argv)[0] != '-') {
             break;
@@ -43,11 +42,11 @@ bool parse_cmd(struct Ping *ping, char **argv, int argc) {
                     return false;
                 }
 
-                set_flags(&ping->flags, (*argv)[1]);
+                set_flags(flags, (*argv)[1]);
                 break;
 
             } else if (*argv[i] == '-' && strlen(*argv) > 2) {
-                validate_flags(&ping->flags, *++argv);
+                validate_flags(flags, *++argv);
                 break;
             }
             break;
@@ -55,12 +54,13 @@ bool parse_cmd(struct Ping *ping, char **argv, int argc) {
     }
 
     char **hostname = ft_split(*argv, '.');
-    size_t size = tab_size(hostname);
+    size_t size = ft_tabsize(hostname);
 
+    ft_freetab(hostname);
     if (size == 2 || size == 3) {
-        ping->socket->target_hostname = ft_strdup(*argv);
+        sock->target_hostname = *argv;
     } else if (size == 4) {
-        ping->socket->target_ip = ft_strdup(*argv);
+        sock->target_ip = *argv;
     }
     return true;
 }

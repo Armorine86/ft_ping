@@ -10,7 +10,7 @@ CC 					=	clang
 CFLAGS				=	-Wall -Werror -Wextra -Wpedantic
 RM					=	rm -rf
 
-INC_FILES 			=	ft_ping.h ft_flags.h ft_socket.h utils.h
+INC_FILES 			=	ft_flags.h ft_socket.h utils.h
 LIBFT_INC_FILES		=	libft.h
 
 SRCS_FILES			=	main.c
@@ -21,7 +21,7 @@ FOLDER_1_HDRS		=
 FOLDER_2_FILES		=	socket.c
 FOLDER_2_HDRS		=	
 				
-FOLDER_3_FILES		= 	error_exit.c cmd_parser.c utils.c
+FOLDER_3_FILES		= 	error_exit.c cmd_parser.c
 FOLDER_3_HDRS		= 	
 
 FOLDER_4_FILES		=	
@@ -53,7 +53,7 @@ ALL_INCLUDES		= 	-I$(INC_PATH)\
 						-I$(FOLDER_3_PATH)\
 						-I$(FOLDER_4_PATH)\
 
-LIBFT				= 	$(MAKE) -C $(LIBFT_PATH)
+LIBFT				= 	$(MAKE) release -C $(LIBFT_PATH)
 
 USAGE				=	./ft_ping [-vh / -v -h] [hostname/IP] [packetSize]
 
