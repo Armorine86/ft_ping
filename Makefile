@@ -15,43 +15,43 @@ LIBFT_INC_FILES		=	libft.h
 
 SRCS_FILES			=	main.c
 
-FOLDER_1_FILES		=	
-FOLDER_1_HDRS		=	
+SOCKET_FILES		=	socket.c addrinfo.c
+SOCKET_HDRS			=	ft_socket.h
 
-FOLDER_2_FILES		=	socket.c
-FOLDER_2_HDRS		=	
+DNS_FILES			=	
+DNS_HDRS			=	
 				
-FOLDER_3_FILES		= 	error_exit.c cmd_parser.c
-FOLDER_3_HDRS		= 	
+UTILS_FILES			= 	error_exit.c cmd_parser.c cleanup.c
+UTILS_HDRS			= 	
 
-FOLDER_4_FILES		=	
-FOLDER_4_HDRS		=	
+PING_FILES			=	ping.c
+PING_HDRS			=	ping.h
 
-FOLDER_1_PATH		= 	$(SRCS_PATH)
-FOLDER_2_PATH		=	$(SRCS_PATH)socket/
-FOLDER_3_PATH		=	$(SRCS_PATH)utils/
-FOLDER_4_PATH		=	$(SRCS_PATH)#folder 4
+DNS_PATH			= 	$(SRCS_PATH)dns/
+SOCKET_PATH			=	$(SRCS_PATH)socket/
+UTILS_PATH			=	$(SRCS_PATH)utils/
+PING_PATH			=	$(SRCS_PATH)ping/
 
 SRCS 				=	$(addprefix $(SRCS_PATH), $(SRCS_FILES))
-FOLDER_1_SRCS		= 	$(addprefix $(FOLDER_1_PATH), $(FOLDER_1_FILES))
-FOLDER_2_SRCS		= 	$(addprefix $(FOLDER_2_PATH), $(FOLDER_2_FILES))
-FOLDER_3_SRCS		=	$(addprefix $(FOLDER_3_PATH), $(FOLDER_3_FILES))
-FOLDER_4_SRCS		=	$(addprefix $(FOLDER_4_PATH), $(FOLDER_4_FILES))
+DNS_SRCS			= 	$(addprefix $(DNS_PATH), $(DNS_FILES))
+SOCKET_SRCS			= 	$(addprefix $(SOCKET_PATH), $(SOCKET_FILES))
+UTILS_SRCS			=	$(addprefix $(UTILS_PATH), $(UTILS_FILES))
+PING_SRCS			=	$(addprefix $(PING_PATH), $(PING_FILES))
 
-OBJS_FILES			= 	$(SRCS_FILES:.c=.o) $(FOLDER_1_FILES:.c=.o) $(FOLDER_3_FILES:.c=.o)\
-						$(FOLDER_2_FILES:.c=.o) $(FOLDER_4_FILES:.c=.o)
+OBJS_FILES			= 	$(SRCS_FILES:.c=.o) $(DNS_FILES:.c=.o) $(UTILS_FILES:.c=.o)\
+						$(SOCKET_FILES:.c=.o) $(PING_FILES:.c=.o)
 
 INCLUDES			=	$(addprefix $(INC_PATH), $(INC_FILES)) $(addprefix $(LIBFT_INC_PATH), $(LIBFT_INC_FILES))
 OBJS 				=	$(addprefix $(OBJS_PATH), $(OBJS_FILES))
 
-VPATH				=	$(SRCS_PATH) $(FOLDER_1_PATH) $(FOLDER_3_PATH) $(FOLDER_2_PATH) $(FOLDER_4_PATH)
+VPATH				=	$(SRCS_PATH) $(DNS_PATH) $(UTILS_PATH) $(SOCKET_PATH) $(PING_PATH)
 
 ALL_INCLUDES		= 	-I$(INC_PATH)\
 						-I$(LIBFT_INC_PATH)\
-						-I$(FOLDER_1_PATH)\
-						-I$(FOLDER_2_PATH)\
-						-I$(FOLDER_3_PATH)\
-						-I$(FOLDER_4_PATH)\
+						-I$(DNS_PATH)\
+						-I$(SOCKET_PATH)\
+						-I$(UTILS_PATH)\
+						-I$(PING_PATH)\
 
 LIBFT				= 	$(MAKE) release -C $(LIBFT_PATH)
 

@@ -4,13 +4,14 @@
 #include <sys/socket.h>
 #include <netinet/ip_icmp.h>
 
-struct Socket {
+typedef struct Socket {
     int fd;
-    int addrlen;
     char *target_ip;
-    char *target_hostname;
-    struct sockaddr_in addr_con;
-};
+    char *web_address;
+    char *hostname;
+    struct sockaddr_in target_addr;
+} Socket;
 
-void init_socket(struct Socket *sock);
+int init_socket(struct Socket *sock);
 void socket_setup(struct Socket *sock);
+void get_address_info(Socket *sock);

@@ -1,16 +1,22 @@
 #pragma once
 
-#include <stdbool.h>
-#include <stddef.h>
-#include <stdlib.h>
-#include <string.h>
-#include <assert.h>
 #include "ft_socket.h"
 
-#define POSSIBLE_FLAGS "vh"
-#define USAGE "./ft_ping [-vh / -v -h] [hostname/IP] [packetSize]"
-#define PACKETSIZE 64
+#include <stdbool.h>
+#include <stdlib.h>
+#include <time.h>
 
-void exit_program(char *msg, int exit_code);
+typedef struct Timer {
+    struct timespec time_start;
+    struct timespec time_end;
+    struct timespec total_time_start;
+    struct timespec total_time_end;
+    struct timeval tv_out;
+    double time_elapsed;
+    long double pkt_round_msec;
+    long double total_msec;
+} Timer;
+
 bool parse_cmd(int *flags, struct Socket *sock, char **argv, int argc);
 void set_flags(int *flags, char c);
+void cleanup(struct Socket *sock);
