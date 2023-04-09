@@ -20,3 +20,4 @@ typedef struct Timer {
 bool parse_cmd(int *flags, struct Socket *sock, char **argv, int argc);
 void set_flags(int *flags, char c);
 void cleanup(struct Socket *sock);
+int calc_percentage(int sent, int received, int total);

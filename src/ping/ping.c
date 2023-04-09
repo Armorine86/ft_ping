@@ -6,7 +6,6 @@
 #include <string.h>
 #include <stdint.h>
 #include <stdio.h>
-#include <sys/_types/_iovec_t.h>
 #include <sys/socket.h>
 #include <time.h>
 
@@ -46,8 +45,8 @@ uint16_t icmp_checksum(void *data, int len) {
 void packet_setup(Socket *sock, Packet *packet, struct iovec *iov, char *msg_buffer) {
     packet->icmp.icmp_header.icmp_type = ICMP_ECHO;
     packet->icmp.icmp_header.icmp_hun.ih_idseq.icd_id = getuid();
-    packet->icmp.icmp_header.icmp_hun.ih_idseq.icd_seq = 0;
-    packet->icmp.icmp_header.icmp_cksum = icmp_checksum(&packet->icmp, sizeof(&packet->icmp));
+    packet->icmp.icmp_header.icmp_hun.ih_idseq.icd_seq = 1;
+    packet->icmp.icmp_header.icmp_cksum = icmp_checksum(&packet->icmp, sizeof(packet->icmp));
 
     iov->iov_base = msg_buffer;
     iov->iov_len = MSG_BUF_SIZE;
@@ -82,24 +81,34 @@ void send_ping(Socket *sock, Packet *packet, Timer *timer) {
         }
 
         if (packet_sent) {
+            packet->packet_sent++;
             if ((bytes = recvmsg(sock->fd, &packet->msghdr, 0)) < 0) {
-                dprintf(2, "Failed to receive message from target_addr\n");
+                dprintf(2, "Failed to receive message from %s\n", sock->hostname);
 
             } else {
                 clock_gettime(CLOCK_MONOTONIC, &timer->time_end);
-                packet->ping_return_count++;
-
                 timer->time_elapsed = ((double)timer->time_end.tv_nsec - timer->time_start.tv_nsec) / 1000000.0;
                 timer->pkt_round_msec = (timer->time_end.tv_sec - timer->time_start.tv_sec) * 1000.0 + timer->time_elapsed;
                 printf("%d bytes from %s: icmp_seq=%d ttl=%d time=%Lf ms\n",
                     PACKETSIZE,
-                    sock->target_ip,
+                    sock->hostname,
                     packet->icmp.icmp_header.icmp_hun.ih_idseq.icd_seq,
                     packet->time_to_live,
                     timer->pkt_round_msec);
+                packet->packet_received++;
             }
+            packet->icmp.icmp_header.icmp_hun.ih_idseq.icd_seq++;
+            memset(&packet->icmp.icmp_header.icmp_cksum, 0, sizeof(packet->icmp.icmp_header.icmp_cksum));
+            packet->icmp.icmp_header.icmp_cksum = icmp_checksum(&packet->icmp, sizeof(packet->icmp));
+
         }
+        sleep(1);
+        packet->packet_total++;
     }
+
+    printf("--- %s ping statistics ---\n", sock->web_address);
+    printf("%d packets transmitted, %d packets received, %d%% packet loss, time %dms\n",
+            packet->packet_sent, packet->packet_received, calc_percentage(packet->packet_sent, packet->packet_received, packet->packet_total), 10);
 }
 
 void ping(Socket *sock) {

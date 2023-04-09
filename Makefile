@@ -21,8 +21,8 @@ SOCKET_HDRS			=	ft_socket.h
 DNS_FILES			=	
 DNS_HDRS			=	
 				
-UTILS_FILES			= 	error_exit.c cmd_parser.c cleanup.c
-UTILS_HDRS			= 	
+UTILS_FILES			= 	error_exit.c cmd_parser.c cleanup.c utils.c
+UTILS_HDRS			= 	utils.h
 
 PING_FILES			=	ping.c
 PING_HDRS			=	ping.h

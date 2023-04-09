@@ -13,7 +13,6 @@ bool loop = true;
 void sigIntHandler(int dummy) {
     (void)dummy;
     loop = false;
-    printf("=== PING REPORT ===\n");
 }
 
 int main(int argc, char **argv) {

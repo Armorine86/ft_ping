@@ -3,7 +3,6 @@
 #include "ft_socket.h"
 #include <netinet/in.h>
 #include <netinet/ip_icmp.h>
-#include <sys/_types/_timeval.h>
 #include <sys/socket.h>
 
 // Standard size of an ICMP packet is 64 bytes
@@ -22,7 +21,9 @@ typedef struct Icmp_Packet {
 typedef struct Packet {
     int time_to_live;
     int addr_len;
-    int ping_return_count;
+    int packet_sent;
+    int packet_received;
+    int packet_total;
     struct msghdr msghdr;
     struct sockaddr_in return_address;
     Icmp_Packet icmp;
