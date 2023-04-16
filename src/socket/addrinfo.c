@@ -39,6 +39,8 @@ void get_target_hostname(Socket *sock) {
     char host[1024];
     char service[32];
 
+    if (ft_strcmp(sock->target_ip, "127.0.0.1") == 0)
+        return;
     if (getnameinfo((struct sockaddr *)&sock->target_addr, sizeof(sock->target_addr), host, sizeof(host), service, sizeof(service), NI_NOFQDN) < 0) {
         exit_program("Could not resolve target's host name", 4);
     }

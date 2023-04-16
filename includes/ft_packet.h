@@ -1,6 +1,7 @@
 #pragma once
 
 #include "ft_socket.h"
+#include "ft_flags.h"
 #include <netinet/in.h>
 #include <netinet/ip_icmp.h>
 #include <sys/socket.h>
@@ -21,7 +22,7 @@ typedef struct Icmp_Packet {
 typedef struct Packet {
     int time_to_live;
     int addr_len;
-    int packet_sent;
+    int total_packet_sent;
     int packet_received;
     int packet_total;
     struct msghdr msghdr;
@@ -29,4 +30,4 @@ typedef struct Packet {
     Icmp_Packet icmp;
 } Packet;
 
-void ping(struct Socket *sock);
+void ping(Socket *sock, Options *options);

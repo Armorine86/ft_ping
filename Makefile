@@ -55,7 +55,7 @@ ALL_INCLUDES		= 	-I$(INC_PATH)\
 
 LIBFT				= 	$(MAKE) release -C $(LIBFT_PATH)
 
-USAGE				=	./ft_ping [-vh / -v -h] [hostname/IP] [packetSize]
+USAGE				=	./ft_ping [-vh / -v -h] [hostname/IP]
 
 $(OBJS_PATH)%.o: %.c
 	@$(CC) $(CFLAGS) $(ALL_INCLUDES) -c $< -o $@
@@ -72,19 +72,6 @@ $(OBJS_PATH):
 	@mkdir -p $(OBJS_PATH)
 	@echo "\033[34;1mCreating Object Directory\n \033[0m"
 	@printf "\033[32;1m\nCompiling with: \033[38;5;208m$(CFLAGS)\033[0m\\n\\n"
-
-
-# linux :	$(OBJS_PATH) $(OBJS)
-# 	@echo "\033[95mCompiling Program \033[0m"
-# 	$(CC) $(OBJS) -o $(NAME)
-# 	@echo "\\n\033[32;1mProgram IS READY \033[0m \\n"
-# 	@echo $(USAGE)
-
-# linux_debug: CFLAGS += -g -fstandalone-debug -DDEBUG=1 -fno-limit-debug-info
-# linux_debug: linux
-
-# linux_redebug : fclean linux_debug
-
 
 debug:	CFLAGS += -g -fstandalone-debug -fno-limit-debug-info
 debug:	$(NAME)

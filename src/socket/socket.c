@@ -1,5 +1,4 @@
 #include "ft_socket.h"
-#include "ft_dns.h"
 #include "ft_errors.h"
 #include "libft.h"
 #include <stdio.h>
@@ -15,7 +14,7 @@ int init_socket(Socket *sock) {
 
 void socket_setup(Socket *sock) {
     if (init_socket(sock)) {
-        printf("Socket Successfully Created!\nSocker FD: %d\n\n", sock->fd);
+        printf("Socket Successfully Created!\nSocket FD: %d\n\n", sock->fd);
     } else {
         exit_program("Could not initiate Socket", 2);
     }

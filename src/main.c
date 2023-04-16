@@ -1,8 +1,9 @@
 #include "ft_flags.h"
 #include "ft_socket.h"
 #include "ft_errors.h"
-#include "ft_ping.h"
+#include "ft_packet.h"
 #include "utils.h"
+#include "libft.h"
 #include <sys/socket.h>
 #include <stdio.h>
 #include <signal.h>
@@ -19,27 +20,26 @@ int main(int argc, char **argv) {
     if (argc == 1) {
         exit_program(USAGE, 1);
     }
+
     signal(SIGINT, sigIntHandler);
 
     Socket sock;
     memset(&sock, 0, sizeof(Socket));
 
-    int flags = 0;
+    Options options;
+    memset(&options, 0, sizeof(Options));
 
-    argv++;
-    if (parse_cmd(&flags, &sock, argv, --argc) == false) {
+    if (parse_cmd(&options, &sock, ++argv, --argc) == false) {
         exit_program(USAGE, 1);
+    }
+
+    if (options.flags & HELP) {
+        exit_program(USAGE, 0);
     }
 
     get_address_info(&sock);
     socket_setup(&sock);
-    ping(&sock);
-    
-    if (flags & VERBOSE) {
-        printf("VERBOSE\n");
-    } if (flags & SWEEPINCRSIZE) {
-        printf("SWEEPINCRSIZE\n");
-    }
+    ping(&sock, &options);
     
     cleanup(&sock);
     return 0;

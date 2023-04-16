@@ -1,6 +1,10 @@
 #pragma once
 
-#define USAGE "./ft_ping [-vh / -v -h] [hostname/IP] [packetSize]"
+#define USAGE "Usage\n \
+    ping [options] <destination>\n\
+Options:\n\
+    <destination>       dns name or ip address\n\
+    -v                  verbose output\n"
 
 typedef enum Errors {
     TTL_EXPIRED,

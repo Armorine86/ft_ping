@@ -9,8 +9,8 @@
             "request": "launch",
             "name": "Debug",
             "program": "${workspaceFolder}/ft_ping",
-            "args": ["-vh", "www.google.com"],
-            // "args": ["-vh", "157.240.241.35"],
+            // "args": ["-vh", "www.google.com"],
+            "args": ["-i", "3", "-v",  "localhost"],
             "cwd": "${workspaceFolder}"
         }
     ]
