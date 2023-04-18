@@ -5,7 +5,9 @@ int calc_percentage(int sent, int received, int total) {
 
     res = sent - received;
 
-    return (res / total) * 100;
+    if (total > 0)
+        return (res / total) * 100;    
+    return 1;
 }
 
 long double calculate_time(Timer *timer) {

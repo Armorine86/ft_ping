@@ -21,6 +21,7 @@ int main(int argc, char **argv) {
         exit_program(USAGE, 1);
     }
 
+    signal(SIGQUIT, sigIntHandler);
     signal(SIGINT, sigIntHandler);
 
     Socket sock;

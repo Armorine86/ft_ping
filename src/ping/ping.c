@@ -81,24 +81,27 @@ void send_ping(Socket *sock, Options *opt, Packet *packet) {
             dprintf(2, "Failed to send packet to target_addr\n");
             packet_sent = false;
         }
-        if (opt->flags & FLOOD) {
+        if (result > 0) {
             write(1, ".", 1);
-            continue;
         }
 
         if (packet_sent) {
+
             packet->total_packet_sent++;
+
             if ((bytes = recvmsg(sock->fd, &packet->msghdr, 0)) < 0) {
                 dprintf(2, "Failed to receive message from %s\n", sock->hostname);
 
             } else {
 
-                if (opt->flags & FLOOD) {
-                    write(1, "\b", 1);
+                if (opt->flags & FLOOD && bytes > 0) {
+                    write(1, "\b \b", 3);
+                    packet->packet_received++;
+                    packet->packet_total++;
                     continue;
                 }
-
-                (opt->flags & VERBOSE)
+                
+                (opt->flags & VERBOSE )
                     ? printf("%d bytes from %s: icmp_seq=%d ttl=%d time=%.2Lf ms\n",
                         PACKETSIZE,
                         sock->hostname,
