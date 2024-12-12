@@ -1,151 +1,140 @@
-#include "libft.h"
 #include "ft_packet.h"
 #include "ft_socket.h"
-#include "utils.h"
 #include "ft_flags.h"
+#include "utils.h"
 #include "ft_errors.h"
-#include <bits/time.h>
-#include <string.h>
 #include <stdio.h>
+#include <string.h>
+#include <errno.h>
 #include <time.h>
+#include <unistd.h>
 
-extern bool loop;
+// Declare external globals that are defined in main.c
+extern int g_packets_transmitted;
+extern int g_packets_received;
+extern struct timespec g_start_time;
 
-void init_ping(Packet *packet, Icmp_Packet *icmp) {
-    memset(packet, 0, sizeof(Packet));
-    memset(icmp, 0, sizeof(Icmp_Packet));
-
-    packet->icmp = *icmp;
-    packet->time_to_live = TTL_VAL;
-}
-
-uint16_t icmp_checksum(void *data, int len) {
-    uint16_t *p = data;
-    uint32_t checksum = 0;
-
-    while (len > 1) {
-        checksum += *p++;
-        len -= 2;
+// Initialize ICMP packet - macOS requires specific header formatting
+static void packet_setup(Packet *packet) {
+    // Clear memory first - important for consistent behavior on macOS
+    memset(&packet->icmp, 0, sizeof(Icmp_Packet));
+    
+    // Set up the ICMP header - macOS uses network byte order
+    packet->icmp.icmp_header.icmp_type = ICMP_ECHO;    // Echo request type
+    packet->icmp.icmp_header.icmp_code = 0;            // Echo request code
+    packet->icmp.icmp_header.icmp_id = getpid() & 0xFFFF;  // Use PID as ID
+    packet->icmp.icmp_header.icmp_seq = 1;             // Initial sequence number
+    
+    // Fill data section - helps with packet validation on macOS
+    for (size_t i = 0; i < (PACKETSIZE - sizeof(struct icmp)); i++) {
+        packet->icmp.data[i] = (unsigned char)i;
     }
 
-    if (len == 1) {
-        checksum += *(uint8_t *)p;
-    }
-
-    while (checksum >> 16) {
-        checksum = (checksum & 0xFFFF) + (checksum >> 16);
-    }
-
-    return (uint16_t)checksum;
+    // Calculate checksum - critical for macOS packet validation
+    packet->icmp.icmp_header.icmp_cksum = 0;  // Must be 0 before calculation
+    packet->icmp.icmp_header.icmp_cksum = icmp_checksum(&packet->icmp.icmp_header, sizeof(struct icmp));
 }
 
-void packet_setup(Socket *sock, Packet *packet, struct iovec *iov, char *msg_buffer) {
-    packet->icmp.icmp_header.icmp_type = ICMP_ECHO;
-    packet->icmp.icmp_header.icmp_hun.ih_idseq.icd_id = getuid();
-    packet->icmp.icmp_header.icmp_hun.ih_idseq.icd_seq = 1;
-    packet->icmp.icmp_header.icmp_cksum = icmp_checksum(&packet->icmp, sizeof(packet->icmp));
-
-    iov->iov_base = msg_buffer;
-    iov->iov_len = MSG_BUF_SIZE;
-
-    packet->msghdr.msg_name = &sock->target_addr;
-    packet->msghdr.msg_namelen = sizeof(sock->target_addr);
-    packet->msghdr.msg_iov = iov;
-    packet->msghdr.msg_iovlen = 1;
-
-}
-
-void send_ping(Socket *sock, Options *opt, Packet *packet) {
-    Timer pckt_timer;
-    Timer ping_timer;
-
+void ping(Socket *sock, Options *options, volatile bool *running) {
+    Packet packet = {0};
+    Timer pckt_timer = {0};
+    Timer ping_timer = {0};
+    struct msghdr msg = {0};
+    struct iovec iov = {0};
+    char msg_buffer[PACKETSIZE];
     int bytes = 0;
     int result = 0;
-    struct iovec iov;
 
-    bool packet_sent = true;
+    packet_setup(&packet);
 
-    char msg_buffer[MSG_BUF_SIZE];
-    memset(&msg_buffer, 0, sizeof(msg_buffer));
+    // Setup message structure for receiving - macOS specific alignment
+    memset(&msg, 0, sizeof(msg));
+    memset(&iov, 0, sizeof(iov));
+    memset(msg_buffer, 0, sizeof(msg_buffer));
 
-    packet_setup(sock, packet, &iov, msg_buffer);
+    iov.iov_base = msg_buffer;
+    iov.iov_len = sizeof(msg_buffer);
+    msg.msg_iov = &iov;
+    msg.msg_iovlen = 1;
+    msg.msg_name = &sock->target_addr;
+    msg.msg_namelen = sizeof(sock->target_addr);
 
     clock_gettime(CLOCK_MONOTONIC, &ping_timer.time_start);
 
-    while(loop) {
+    while(*running) {
+        // Check if we've reached the count limit
+        if ((options->flags & COUNT) && g_packets_transmitted >= options->count) {
+            *running = false;
+            print_stats();
+            break;
+        }
 
         clock_gettime(CLOCK_MONOTONIC, &pckt_timer.time_start);
 
-        if ((result = sendto(sock->fd, &packet->icmp, sizeof(packet->icmp), 0,
-                            (struct sockaddr *)&sock->target_addr, sizeof(sock->target_addr))) < 0) {
-            dprintf(2, "Failed to send packet to target_addr\n");
-            packet_sent = false;
+        result = sendto(sock->fd, 
+                       &packet.icmp.icmp_header,
+                       sizeof(struct icmp),
+                       0,
+                       (struct sockaddr *)&sock->target_addr,
+                       sizeof(struct sockaddr_in));
+
+        if (result < 0) {
+            printf("sendto error: %s (errno: %d)\n", strerror(errno), errno);
+            cleanup(sock);
+            exit_program("Failed to send packet", 1);
         }
-        if (result > 0) {
+
+        g_packets_transmitted++;  // Increment global counter
+
+        if (options->flags & FLOOD) {
             write(1, ".", 1);
         }
 
-        if (packet_sent) {
-
-            packet->total_packet_sent++;
-
-            if ((bytes = recvmsg(sock->fd, &packet->msghdr, 0)) < 0) {
-                dprintf(2, "Failed to receive message from %s\n", sock->hostname);
-
-            } else {
-
-                if (opt->flags & FLOOD && bytes > 0) {
-                    write(1, "\b \b", 3);
-                    packet->packet_received++;
-                    packet->packet_total++;
-                    continue;
-                }
-                
-                (opt->flags & VERBOSE )
-                    ? printf("%d bytes from %s: icmp_seq=%d ttl=%d time=%.2Lf ms\n",
-                        PACKETSIZE,
-                        sock->hostname,
-                        packet->icmp.icmp_header.icmp_hun.ih_idseq.icd_seq,
-                        packet->time_to_live,
-                        calculate_time(&pckt_timer))
-
-                    : printf("%d bytes from %s: time=%.2Lf ms\n",
-                        PACKETSIZE,
-                        sock->hostname,
-                        calculate_time(&pckt_timer));
-
-                packet->packet_received++;
+        bytes = recvmsg(sock->fd, &msg, 0);
+        if (bytes < 0) {
+            if (errno != EAGAIN && errno != EWOULDBLOCK) {
+                perror("recvmsg failed");
+                continue;
             }
+        } else {
+            struct ip *ip_header = (struct ip *)msg_buffer;
+            int ip_header_len = ip_header->ip_hl << 2;
+            struct icmp *icmp_reply = (struct icmp *)(msg_buffer + ip_header_len);
 
-            packet->icmp.icmp_header.icmp_hun.ih_idseq.icd_seq++;
+            if (icmp_reply->icmp_type == ICMP_ECHOREPLY &&
+                icmp_reply->icmp_id == (getpid() & 0xFFFF)) {
+                g_packets_received++;  // Increment global counter
+                
+                if (!(options->flags & QUIET)) {  // Only print if not quiet
+                    if (options->flags & VERBOSE) {
+                        printf("%d bytes from %s: icmp_seq=%d ttl=%d time=%.2Lf ms\n",
+                            bytes - ip_header_len,
+                            sock->hostname,
+                            icmp_reply->icmp_seq,
+                            ip_header->ip_ttl,
+                            calculate_time(&pckt_timer));
+                    } else {
+                        printf("%d bytes from %s: time=%.2Lf ms\n",
+                            bytes - ip_header_len,
+                            sock->hostname,
+                            calculate_time(&pckt_timer));
+                    }
+                }
 
-            memset(&packet->icmp.icmp_header.icmp_cksum, 0, sizeof(packet->icmp.icmp_header.icmp_cksum));
-            packet->icmp.icmp_header.icmp_cksum = icmp_checksum(&packet->icmp, sizeof(packet->icmp));
-
+                if (options->flags & FLOOD) {
+                    write(1, "\b \b", 3);
+                }
+            }
         }
-        sleep((opt->flags & FLOOD) ? 0 : opt->flags & INTERVAL ? opt->interval_sec : 1);
-        packet->packet_total++;
+
+        // Prepare next packet
+        packet.icmp.icmp_header.icmp_seq++;
+        packet.icmp.icmp_header.icmp_cksum = 0;
+        packet.icmp.icmp_header.icmp_cksum = icmp_checksum(&packet.icmp.icmp_header, sizeof(struct icmp));
+
+        // Handle delay between pings
+        if (!(options->flags & FLOOD)) {
+            sleep(options->flags & INTERVAL ? options->interval_sec : 1);
+        }
     }
-
-    printf("--- %s ping statistics ---\n", sock->web_address);
-    printf("%d packets transmitted, %d packets received, %d%% packet loss, time %.2Lfms\n",
-            packet->total_packet_sent, packet->packet_received, calc_percentage(packet->total_packet_sent, packet->packet_received, packet->packet_total), calculate_time(&ping_timer));
-}
-
-void ping(Socket *sock, Options *options) {
-
-    Packet packet;
-    Icmp_Packet icmp;
-
-    init_ping(&packet, &icmp);
-
-    if (setsockopt(sock->fd, IPPROTO_IP, IP_TTL, &packet.time_to_live, sizeof(packet.time_to_live)) != 0) {
-        cleanup(sock);
-        exit_program("Failed to setup packet TTL", 6);
-    } else {
-        printf("Socket TTL setup successfull\n");
-    }
-
-    send_ping(sock, options, &packet);
-    return;
 }

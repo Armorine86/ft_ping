@@ -1,17 +1,12 @@
 #include "ft_socket.h"
-#include <netdb.h>
 #include <stdlib.h>
+#include <unistd.h>
 
 void cleanup(Socket *sock) {
-    if (sock->web_address) {
-        free(sock->web_address);
+    if (sock->fd > 0) {
+        close(sock->fd);
     }
-
-    if (sock->target_ip) {
-        free(sock->target_ip);
-    }
-
-    if (sock->hostname){
-        free(sock->hostname);
-    }
+    free(sock->web_address);
+    free(sock->target_ip);
+    free(sock->hostname);
 }

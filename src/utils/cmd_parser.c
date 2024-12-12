@@ -1,77 +1,121 @@
 #include "ft_flags.h"
 #include "utils.h"
-#include "libft.h"
 #include <string.h>
 #include <stdio.h>
+#include <stdlib.h>
+#include <unistd.h>
 
-void set_flags(Options *opt, char **argv, char c) {
+// Default values for options
+#define DEFAULT_PACKET_SIZE 56
+#define DEFAULT_TTL 64
+#define DEFAULT_COUNT 0  // 0 means infinite
+#define DEFAULT_INTERVAL 1
+
+static void set_flags(Options *opt, char **argv, char c, int *skip) {
     switch (c) {
         case 'v':
             opt->flags |= VERBOSE;
             break;
-        
         case 'h':
             opt->flags |= HELP;
             break;
-        
         case 'f':
-            opt->flags |= FLOOD;
+            if (getuid() == 0) {  // Only root can use flood
+                opt->flags |= FLOOD;
+            } else {
+                printf("flood ping requires root privileges\n");
+                exit(1);
+            }
+            break;
+        case 'q':
+            opt->flags |= QUIET;
             break;
         case 'i':
-            opt->flags |= INTERVAL;
-            ++argv;
-            opt->interval_sec = ft_atoi(*argv);
+            if (argv[1] && argv[1][0] != '-') {
+                opt->flags |= INTERVAL;
+                opt->interval_sec = atoi(argv[1]);
+                if (opt->interval_sec <= 0) {
+                    printf("invalid interval: %s\n", argv[1]);
+                    exit(1);
+                }
+                *skip = 1;
+            }
+            break;
+        case 'c':
+            if (argv[1] && argv[1][0] != '-') {
+                opt->flags |= COUNT;
+                opt->count = atoi(argv[1]);
+                if (opt->count <= 0) {
+                    printf("invalid count: %s\n", argv[1]);
+                    exit(1);
+                }
+                *skip = 1;
+            }
+            break;
+        case 's':
+            if (argv[1] && argv[1][0] != '-') {
+                opt->flags |= PACKETSIZE;
+                opt->packet_size = atoi(argv[1]);
+                if (opt->packet_size < 0 || opt->packet_size > 65507) {
+                    printf("invalid packet size: %s\n", argv[1]);
+                    exit(1);
+                }
+                *skip = 1;
+            }
+            break;
+        case 't':
+            if (argv[1] && argv[1][0] != '-') {
+                opt->flags |= TTL;
+                opt->ttl = atoi(argv[1]);
+                if (opt->ttl <= 0 || opt->ttl > 255) {
+                    printf("invalid ttl: %s\n", argv[1]);
+                    exit(1);
+                }
+                *skip = 1;
+            }
             break;
     }
 }
 
-bool validate_flag(char c) {
-    return ft_strchr(POSSIBLE_FLAGS, c);
-}
-
-bool validate_flags(Options *options, char **argv, char *str) {
-    for (int i = 0; str[i]; ++i) {
-        if (!ft_strchr(POSSIBLE_FLAGS, str[i])) {
-            return false;
-        }
-        set_flags(options, argv, str[i]);
-    }
-    return true;
+static bool validate_flag(char c) {
+    return strchr(POSSIBLE_FLAGS, c) != NULL;
 }
 
 bool parse_cmd(Options *options, Socket *sock, char **argv, int argc) {
-    for (; argc > 1; ++argv, --argc) {
-        ft_print_tab(argv);
+    int skip = 0;
 
-        for (int i = 0; *argv[i]; i++) {
-            if ((*argv)[i] == '-' && strlen(*argv) == 2) {
-                if (!validate_flag((*argv)[1])) {
+    // Initialize options with default values
+    options->flags = 0;
+    options->interval_sec = DEFAULT_INTERVAL;
+    options->count = DEFAULT_COUNT;
+    options->packet_size = DEFAULT_PACKET_SIZE;
+    options->ttl = DEFAULT_TTL;
+
+    while (argc > 0) {
+        if (skip) {
+            skip = 0;
+            argv++;
+            argc--;
+            continue;
+        }
+
+        if (argv[0][0] == '-') {
+            char *flags = argv[0] + 1;
+            for (size_t i = 0; flags[i]; i++) {
+                if (!validate_flag(flags[i])) {
+                    printf("invalid option -- '%c'\n", flags[i]);
                     return false;
                 }
-                // separated flags i.e: -v -h -i -f
-                set_flags(options, argv, (*argv)[1]);
-                break;
-
-            } else if (*argv[i] == '-' && strlen(*argv) > 2) {
-                // multiple flags  i.e: -vhif
-                validate_flags(options, argv, ++(*argv));
-                break;
+                set_flags(options, argv, flags[i], &skip);
             }
-            break;
+        } else {
+            sock->web_address = strdup(argv[0]);
+            return true;
         }
+
+        argv++;
+        argc--;
     }
 
-    char **hostname = ft_split(*argv, '.');
-    size_t size = ft_tabsize(hostname);
-    ft_freetab(hostname);
-    
-    if (size < 2) {
-        return false;
-
-    } else if (size == 2 || size == 3) {
-        sock->web_address = ft_strdup(*argv);
-    } else if (size == 4) {
-        sock->target_ip = ft_strdup(*argv);
-    }
-    return true;
+    return sock->web_address != NULL;
 }

@@ -1,33 +1,33 @@
 #pragma once
 
-#include "ft_socket.h"
-#include "ft_flags.h"
-#include <netinet/in.h>
+#include <netinet/ip.h>
 #include <netinet/ip_icmp.h>
 #include <sys/socket.h>
+#include <arpa/inet.h>
+#include <stdlib.h>
+#include <unistd.h>
+#include "ft_socket.h"
+#include "ft_flags.h"
 
-// Standard size of an ICMP packet is 64 bytes
-#define PACKETSIZE 64
-#define RECEIVE_TIMEOUT 2
-#define MSG_BUF_SIZE 2048
+// On macOS, ICMP packets require specific sizes and alignments
+#define PACKETSIZE 64        // Standard ping packet size
+#define TTL_VAL 64          // Default TTL value
 
-/* Number of router hops before the packet expires */
-#define TTL_VAL 64
-
-typedef struct Icmp_Packet {
-    struct icmp icmp_header;
-    char msg[PACKETSIZE - sizeof(struct icmp)];
+// ICMP packet structure
+// On macOS, we need to ensure proper alignment of the icmp header
+typedef struct {
+    struct icmp icmp_header;  // ICMP header structure (from netinet/ip_icmp.h)
+    char data[PACKETSIZE - sizeof(struct icmp)];  // Remaining space for data
 } Icmp_Packet;
 
-typedef struct Packet {
-    int time_to_live;
-    int addr_len;
+// Packet statistics and control structure
+typedef struct {
+    Icmp_Packet icmp;
     int total_packet_sent;
     int packet_received;
     int packet_total;
-    struct msghdr msghdr;
-    struct sockaddr_in return_address;
-    Icmp_Packet icmp;
+    int time_to_live;
 } Packet;
 
-void ping(Socket *sock, Options *options);
+// Function declarations
+void ping(Socket *sock, Options *options, volatile bool *running);

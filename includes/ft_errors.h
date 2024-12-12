@@ -1,10 +1,17 @@
 #pragma once
 
-#define USAGE "Usage\n \
-    ping [options] <destination>\n\
+#define USAGE "\
+Usage: ping [-vhfq] [-c count] [-i interval] [-s packetsize] [-t ttl] destination\n\
 Options:\n\
-    <destination>       dns name or ip address\n\
-    -v                  verbose output\n"
+  -v            verbose output\n\
+  -h            show this help message\n\
+  -f            flood ping (root only)\n\
+  -q            quiet output\n\
+  -c count      stop after sending 'count' packets\n\
+  -i interval   wait 'interval' seconds between sending each packet\n\
+  -s size       specify the number of data bytes to be sent (default: 56)\n\
+  -t ttl        specify the IP Time To Live (default: 64)\n\
+destination     dns name or ip address\n"
 
 typedef enum Errors {
     TTL_EXPIRED,
@@ -13,4 +20,4 @@ typedef enum Errors {
     UNKNOWN_HOST
 } Errors;
 
-void exit_program(char *msg, int exit_code);
+void exit_program(const char *msg, int exit_code);

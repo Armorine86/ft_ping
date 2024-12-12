@@ -3,44 +3,64 @@
 #include "ft_errors.h"
 #include "ft_packet.h"
 #include "utils.h"
-#include "libft.h"
-#include <sys/socket.h>
 #include <stdio.h>
 #include <signal.h>
 #include <string.h>
+#include <stdbool.h>
 
-bool loop = true;
+// Define global variables
+volatile bool g_running = true;
+int g_packets_transmitted = 0;
+int g_packets_received = 0;
+struct timespec g_start_time;
 
-void sigIntHandler(int dummy) {
-    (void)dummy;
-    loop = false;
+static void signal_handler(int signo) {
+    if (signo == SIGINT) {
+        printf("\n");  // Move to a new line after ^C
+        g_running = false;
+        print_stats();
+        exit(0);
+    }
 }
 
 int main(int argc, char **argv) {
-    if (argc == 1) {
-        exit_program(USAGE, 1);
+    if (argc < 2) {
+        printf("%s", USAGE);
+        return 1;
     }
 
-    signal(SIGQUIT, sigIntHandler);
-    signal(SIGINT, sigIntHandler);
+    // Set up signal handling
+    struct sigaction sa;
+    memset(&sa, 0, sizeof(sa));
+    sa.sa_handler = signal_handler;
+    sigemptyset(&sa.sa_mask);
+    
+    if (sigaction(SIGINT, &sa, NULL) == -1) {
+        perror("sigaction");
+        return 1;
+    }
 
-    Socket sock;
-    memset(&sock, 0, sizeof(Socket));
+    Socket sock = {0};
+    Options options = {0};
 
-    Options options;
-    memset(&options, 0, sizeof(Options));
-
-    if (parse_cmd(&options, &sock, ++argv, --argc) == false) {
-        exit_program(USAGE, 1);
+    if (!parse_cmd(&options, &sock, ++argv, --argc)) {
+        printf("%s", USAGE);
+        return 1;
     }
 
     if (options.flags & HELP) {
-        exit_program(USAGE, 0);
+        printf("%s", USAGE);
+        return 0;
     }
+
+    // Record start time
+    clock_gettime(CLOCK_MONOTONIC, &g_start_time);
 
     get_address_info(&sock);
     socket_setup(&sock);
-    ping(&sock, &options);
+    
+    // Pass the running flag to ping function
+    ping(&sock, &options, &g_running);
     
     cleanup(&sock);
     return 0;

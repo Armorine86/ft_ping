@@ -2,20 +2,21 @@
 
 #include "ft_socket.h"
 #include "ft_flags.h"
-
-#include <stdbool.h>
-#include <stdlib.h>
 #include <time.h>
 
-typedef struct Timer {
+#define SEC_TO_MS 1000.0
+#define NANO_TO_MS 1000000.0
+
+// Timer structure for precise timing measurements
+typedef struct {
     struct timespec time_start;
     struct timespec time_end;
     double time_elapsed;
-    long double pkt_round_msec;
 } Timer;
 
-bool parse_cmd(Options *options, struct Socket *sock, char **argv, int argc);
-// void set_flags(Options *options, char *str, char c);
-void cleanup(struct Socket *sock);
+// Function declarations
+bool parse_cmd(Options *options, Socket *sock, char **argv, int argc);
 int calc_percentage(int sent, int received, int total);
 long double calculate_time(Timer *timer);
+uint16_t icmp_checksum(void *data, size_t len);
+void print_stats(void);

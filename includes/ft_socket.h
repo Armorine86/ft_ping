@@ -3,15 +3,19 @@
 #include <netinet/in.h>
 #include <sys/socket.h>
 #include <netinet/ip_icmp.h>
+#include <stdbool.h>
 
-typedef struct Socket {
-    int fd;
-    char *target_ip;
-    char *web_address;
-    char *hostname;
-    struct sockaddr_in target_addr;
+// Socket structure for managing network connections
+// On macOS, we need to handle both IPv4 and hostname resolution
+typedef struct {
+    int fd;                     // Socket file descriptor
+    char *target_ip;           // Target IP address string
+    char *web_address;         // Original input address (hostname or IP)
+    char *hostname;            // Resolved hostname
+    struct sockaddr_in target_addr;  // Socket address structure for IPv4
 } Socket;
 
-int init_socket(struct Socket *sock);
-void socket_setup(struct Socket *sock);
-void get_address_info(Socket *sock);
+// Function declarations for socket operations
+void socket_setup(Socket *sock);      // Initialize socket with macOS-specific options
+void get_address_info(Socket *sock);  // Resolve addresses using macOS DNS
+void cleanup(Socket *sock);           // Cleanup resources
